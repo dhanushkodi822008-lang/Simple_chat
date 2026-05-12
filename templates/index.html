@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chat</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen">
+            <div class="login-box">
+                <h1>💬 Simple Chat</h1>
+                <input type="text" id="username" placeholder="Enter your username" maxlength="20">
+                <button onclick="joinChat()">Join Chat</button>
+            </div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div id="chat-screen" class="screen hidden">
+            <div class="header">
+                <h2>Room: General</h2>
+                <div id="online-users">0 online</div>
+            </div>
+            
+            <div id="messages" class="messages"></div>
+            
+            <div class="input-area">
+                <input type="text" id="message-input" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <script>
+        let socket;
+        let username = "";
+
+        function joinChat() {
+            username = document.getElementById("username").value.trim();
+            if (username === "") {
+                alert("Please enter a username!");
+                return;
+            }
+
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("chat-screen").classList.remove("hidden");
+
+            // Connect to backend
+            socket = io();
+
+            socket.on('connect', () => {
+                socket.emit('join', { username: username });
+            });
+
+            socket.on('message', (data) => {
+                addMessage(data.username, data.message, data.timestamp);
+            });
+
+            socket.on('user_joined', (data) => {
+                addSystemMessage(`${data.username} joined the chat`);
+            });
+
+            socket.on('user_left', (data) => {
+                addSystemMessage(`${data.username} left the chat`);
+            });
+
+            socket.on('online_count', (count) => {
+                document.getElementById("online-users").textContent = `${count} online`;
+            });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById("message-input");
+            const message = input.value.trim();
+            
+            if (message !== "" && socket) {
+                socket.emit('message', { message: message });
+                input.value = "";
+            }
+        }
+
+        function addMessage(user, message, timestamp) {
+            const messagesDiv = document.getElementById("messages");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${user === username ? 'own' : 'other'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-info">
+                    <strong>${user}</strong>
+                    <span class="timestamp">${timestamp}</span>
+                </div>
+                <div class="message-text">${message}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const messagesDiv = document.getElementById("messages");
+            const sysDiv = document.createElement("div");
+            sysDiv.className = "system-message";
+            sysDiv.textContent = text;
+            messagesDiv.appendChild(sysDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Close connection when window is closed
+        window.onbeforeunload = () => {
+            if (socket) socket.disconnect();
+        };
+    </script>
+</body>
+</html>
