@@ -48,6 +48,6 @@ def update_online_count():
     socketio.emit('online_count', count, room='general')
 
 if __name__ == '__main__':
-    print("🚀 Simple Chat Server running on http://localhost:5000")
-  import os
-socketio.run(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    print("🚀 Simple Chat Server running")
+    import os
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
