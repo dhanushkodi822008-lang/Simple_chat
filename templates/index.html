@@ -8,27 +8,70 @@
 </head>
 <body>
     <div class="container">
-        <!-- Login Screen -->
         <div id="login-screen" class="screen">
             <div class="login-box">
-                <h1>💬 Simple Chat</h1>
+                <h1>?? Simple Chat</h1>
                 <input type="text" id="username" placeholder="Enter your username" maxlength="20">
                 <button onclick="joinChat()">Join Chat</button>
             </div>
         </div>
 
-        <!-- Chat Screen -->
         <div id="chat-screen" class="screen hidden">
-            <div class="header">
-                <h2>Room: General</h2>
-                <div id="online-users">0 online</div>
+            <div class="chat-header">
+                <div>
+                    <h2>General Chat</h2>
+                    <p id="online-users">0 online</p>
+                </div>
+                <div class="header-actions">
+                    <button id="theme-toggle" onclick="toggleTheme()">Light/Dark</button>
+                </div>
             </div>
-            
-            <div id="messages" class="messages"></div>
-            
-            <div class="input-area">
-                <input type="text" id="message-input" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendMessage()">
-                <button onclick="sendMessage()">Send</button>
+
+            <div class="chat-layout">
+                <section class="chat-panel">
+                    <div id="messages" class="messages"></div>
+
+                    <div class="attachment-bar">
+                        <label class="file-button">
+                            📎 Attach file
+                            <input type="file" id="file-input" onchange="handleFileInput(event)">
+                        </label>
+                        <span id="file-preview" class="file-preview"></span>
+                    </div>
+
+                    <div class="emoji-bar">
+                        <button type="button" onclick="addEmoji('😀')">😀</button>
+                        <button type="button" onclick="addEmoji('😂')">😂</button>
+                        <button type="button" onclick="addEmoji('😅')">😅</button>
+                        <button type="button" onclick="addEmoji('😭')">😭</button>
+                        <button type="button" onclick="addEmoji('😡')">😡</button>
+                        <button type="button" onclick="addEmoji('☺️')">☺️</button>
+                        <button type="button" onclick="addEmoji('❤️')">❤️</button>
+                        <button type="button" onclick="addEmoji('👍')">👍</button>
+                        <button type="button" onclick="addEmoji('🙏')">🙏</button>
+                    </div>
+
+                    <div class="input-area">
+                        <input type="text" id="message-input" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                        <button onclick="sendMessage()">Send</button>
+                    </div>
+                </section>
+
+                <aside class="sidebar">
+                    <div class="users-card">
+                        <h3>Active Users</h3>
+                        <ul id="user-list"></ul>
+                    </div>
+                    <div class="info-card">
+                        <h3>Features</h3>
+                        <ul>
+                            <li>Real-time messaging</li>
+                            <li>Files, images, videos & documents</li>
+                            <li>Edit, delete & forward messages</li>
+                            <li>Dark / light mode</li>
+                        </ul>
+                    </div>
+                </aside>
             </div>
         </div>
     </div>
@@ -36,82 +79,254 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
     <script>
         let socket;
-        let username = "";
+        let username = '';
+        let selectedFile = null;
 
         function joinChat() {
-            username = document.getElementById("username").value.trim();
-            if (username === "") {
-                alert("Please enter a username!");
+            username = document.getElementById('username').value.trim();
+            if (!username) {
+                alert('Please enter a username!');
                 return;
             }
 
-            document.getElementById("login-screen").classList.add("hidden");
-            document.getElementById("chat-screen").classList.remove("hidden");
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('chat-screen').classList.remove('hidden');
+            initializeTheme();
 
-            // Connect to backend
             socket = io();
 
             socket.on('connect', () => {
-                socket.emit('join', { username: username });
+                socket.emit('join', { username });
             });
 
-            socket.on('message', (data) => {
-                addMessage(data.username, data.message, data.timestamp);
+            socket.on('chat_history', (messages) => {
+                messages.forEach(renderMessage);
             });
 
-            socket.on('user_joined', (data) => {
-                addSystemMessage(`${data.username} joined the chat`);
-            });
+            socket.on('message', renderMessage);
+            socket.on('message_updated', updateMessage);
+            socket.on('message_deleted', removeMessage);
+            socket.on('user_joined', (data) => addSystemMessage(`${data.username} joined the chat`));
+            socket.on('user_left', (data) => addSystemMessage(`${data.username} left the chat`));
+            socket.on('online_count', updateOnlineUsers);
 
-            socket.on('user_left', (data) => {
-                addSystemMessage(`${data.username} left the chat`);
-            });
-
-            socket.on('online_count', (count) => {
-                document.getElementById("online-users").textContent = `${count} online`;
-            });
+            socket.on('connect_error', () => addSystemMessage('Unable to connect to server.'));
+            window.onbeforeunload = () => { if (socket) socket.disconnect(); };
         }
 
-        function sendMessage() {
-            const input = document.getElementById("message-input");
-            const message = input.value.trim();
-            
-            if (message !== "" && socket) {
-                socket.emit('message', { message: message });
-                input.value = "";
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text && !selectedFile) {
+                return;
             }
+
+            if (selectedFile) {
+                const upload = new FormData();
+                upload.append('file', selectedFile);
+                const response = await fetch('/upload', { method: 'POST', body: upload });
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result.error || 'Upload failed.');
+                    return;
+                }
+                socket.emit('message', {
+                    message: text,
+                    message_type: result.message_type,
+                    file_url: result.file_url,
+                    file_name: result.filename
+                });
+            } else {
+                socket.emit('message', { message: text, message_type: 'text' });
+            }
+
+            input.value = '';
+            clearFileSelection();
         }
 
-        function addMessage(user, message, timestamp) {
-            const messagesDiv = document.getElementById("messages");
-            const messageDiv = document.createElement("div");
-            messageDiv.className = `message ${user === username ? 'own' : 'other'}`;
-            
+        function handleFileInput(event) {
+            selectedFile = event.target.files[0];
+            const preview = document.getElementById('file-preview');
+            preview.textContent = selectedFile ? `Attached: ${selectedFile.name}` : '';
+        }
+
+        function clearFileSelection() {
+            selectedFile = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-preview').textContent = '';
+        }
+
+        function renderMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const existing = document.querySelector(`[data-id='${message.id}']`);
+            if (existing) {
+                updateMessage(message);
+                return;
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.username === username ? 'own' : 'other'}`;
+            messageDiv.dataset.id = message.id;
+
+            const isDeleted = message.deleted;
+            const forwardedLabel = message.forwarded_from ? `<span class="forwarded">Forwarded from ${message.forwarded_from}</span>` : '';
+            const editedLabel = message.edited ? '<span class="edited">(edited)</span>' : '';
+
+            let contentHtml = '';
+            if (isDeleted) {
+                contentHtml = '<div class="message-text deleted">This message was deleted.</div>';
+            } else if (message.message_type === 'image') {
+                contentHtml = `<div class="message-media"><img src="${message.file_url}" alt="${message.file_name}"></div>`;
+            } else if (message.message_type === 'video') {
+                contentHtml = `<div class="message-media"><video controls src="${message.file_url}"></video></div>`;
+            } else if (message.message_type === 'file') {
+                contentHtml = `<div class="message-file"><a href="${message.file_url}" target="_blank" rel="noreferrer">${message.file_name}</a></div>`;
+            } else {
+                contentHtml = `<div class="message-text">${escapeHtml(message.text)}</div>`;
+            }
+
             messageDiv.innerHTML = `
-                <div class="message-info">
-                    <strong>${user}</strong>
-                    <span class="timestamp">${timestamp}</span>
+                <div class="message-meta">
+                    <div>
+                        <strong>${message.username}</strong> ${editedLabel}
+                        ${forwardedLabel}
+                    </div>
+                    <span class="timestamp">${message.timestamp}</span>
                 </div>
-                <div class="message-text">${message}</div>
+                ${contentHtml}
+                <div class="message-actions">${renderActions(message)}</div>
             `;
-            
+
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
+        function renderActions(message) {
+            if (message.deleted) {
+                return '';
+            }
+            const actions = [];
+            if (message.username === username) {
+                actions.push(`<button onclick="editMessage('${message.id}')">Edit</button>`);
+                actions.push(`<button onclick="deleteMessage('${message.id}')">Delete</button>`);
+            }
+            actions.push(`<button onclick="forwardMessage('${message.id}')">Forward</button>`);
+            return actions.join('');
+        }
+
+        function updateMessage(message) {
+            const messageDiv = document.querySelector(`[data-id='${message.id}']`);
+            if (!messageDiv) {
+                renderMessage(message);
+                return;
+            }
+
+            const contentNode = messageDiv.querySelector('.message-text, .message-media, .message-file');
+            if (message.deleted) {
+                messageDiv.querySelector('.message-meta').innerHTML = `<div><strong>${message.username}</strong></div><span class="timestamp">${message.timestamp}</span>`;
+                if (contentNode) contentNode.outerHTML = '<div class="message-text deleted">This message was deleted.</div>';
+                messageDiv.querySelector('.message-actions').innerHTML = '';
+                return;
+            }
+
+            const forwardedLabel = message.forwarded_from ? `<span class="forwarded">Forwarded from ${message.forwarded_from}</span>` : '';
+            const editedLabel = message.edited ? '<span class="edited">(edited)</span>' : '';
+            messageDiv.querySelector('.message-meta').innerHTML = `
+                <div>
+                    <strong>${message.username}</strong> ${editedLabel}
+                    ${forwardedLabel}
+                </div>
+                <span class="timestamp">${message.timestamp}</span>
+            `;
+
+            let newContent = '';
+            if (message.message_type === 'image') {
+                newContent = `<div class="message-media"><img src="${message.file_url}" alt="${message.file_name}"></div>`;
+            } else if (message.message_type === 'video') {
+                newContent = `<div class="message-media"><video controls src="${message.file_url}"></video></div>`;
+            } else if (message.message_type === 'file') {
+                newContent = `<div class="message-file"><a href="${message.file_url}" target="_blank" rel="noreferrer">${message.file_name}</a></div>`;
+            } else {
+                newContent = `<div class="message-text">${escapeHtml(message.text)}</div>`;
+            }
+            if (contentNode) {
+                contentNode.outerHTML = newContent;
+            }
+            messageDiv.querySelector('.message-actions').innerHTML = renderActions(message);
+        }
+
+        function removeMessage(data) {
+            const messageDiv = document.querySelector(`[data-id='${data.id}']`);
+            if (messageDiv) {
+                const contentNode = messageDiv.querySelector('.message-text, .message-media, .message-file');
+                if (contentNode) contentNode.outerHTML = '<div class="message-text deleted">This message was deleted.</div>';
+                const actions = messageDiv.querySelector('.message-actions');
+                if (actions) actions.innerHTML = '';
+            }
+        }
+
+        function editMessage(messageId) {
+            const currentNode = document.querySelector(`[data-id='${messageId}'] .message-text`);
+            const currentText = currentNode ? currentNode.textContent : '';
+            const newText = prompt('Edit your message:', currentText);
+            if (newText !== null) {
+                socket.emit('edit_message', { id: messageId, message: newText.trim() });
+            }
+        }
+
+        function deleteMessage(messageId) {
+            if (confirm('Delete this message?')) {
+                socket.emit('delete_message', { id: messageId });
+            }
+        }
+
+        function forwardMessage(messageId) {
+            if (confirm('Forward this message to the group?')) {
+                socket.emit('forward_message', { id: messageId });
+            }
+        }
+
+        function updateOnlineUsers(data) {
+            const countText = `${data.count} online`;
+            document.getElementById('online-users').textContent = countText;
+            const list = document.getElementById('user-list');
+            list.innerHTML = data.users.map(user => `<li>${escapeHtml(user)}</li>`).join('');
+        }
+
         function addSystemMessage(text) {
-            const messagesDiv = document.getElementById("messages");
-            const sysDiv = document.createElement("div");
-            sysDiv.className = "system-message";
+            const messagesDiv = document.getElementById('messages');
+            const sysDiv = document.createElement('div');
+            sysDiv.className = 'system-message';
             sysDiv.textContent = text;
             messagesDiv.appendChild(sysDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // Close connection when window is closed
-        window.onbeforeunload = () => {
-            if (socket) socket.disconnect();
-        };
+        function addEmoji(emoji) {
+            const input = document.getElementById('message-input');
+            input.value += emoji;
+            input.focus();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('chat-theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+        }
+
+        function initializeTheme() {
+            const saved = localStorage.getItem('chat-theme');
+            if (saved === 'dark') {
+                document.body.classList.add('dark');
+            } else {
+                document.body.classList.remove('dark');
+            }
+        }
     </script>
 </body>
 </html>

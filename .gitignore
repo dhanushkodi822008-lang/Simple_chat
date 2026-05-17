@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+
+# Bytecode
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database
+database/*.db
+
+# IDE
+.vscode/
+
+# Ignore python egg info
+*.egg-info/

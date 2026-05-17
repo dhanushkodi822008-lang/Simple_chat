@@ -4,156 +4,353 @@
     box-sizing: border-box;
 }
 
+:root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface-strong: #eef1f8;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --primary: #5b7df3;
+    --primary-dark: #3f5ed4;
+    --danger: #ef4444;
+    --success: #10b981;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--text);
+}
+
+body.dark {
+    --bg: #111827;
+    --surface: #1f2937;
+    --surface-strong: #374151;
+    --text: #f9fafb;
+    --muted: #9ca3af;
+    --primary: #60a5fa;
+    --primary-dark: #2563eb;
 }
 
 .container {
     width: 100%;
-    max-width: 800px;
-    height: 90vh;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 1200px;
+    min-height: 88vh;
+    background: var(--surface);
+    border-radius: 22px;
+    box-shadow: 0 25px 70px rgba(15, 23, 42, 0.25);
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
-/* Login Screen */
-.login-box {
+.screen {
     flex: 1;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 420px;
     padding: 40px;
     text-align: center;
 }
 
 .login-box h1 {
-    font-size: 2.5rem;
-    margin-bottom: 30px;
-    color: #333;
+    font-size: 2.8rem;
+    margin-bottom: 25px;
 }
 
-#username {
-    width: 300px;
-    padding: 15px;
-    font-size: 1.1rem;
-    border: 2px solid #ddd;
-    border-radius: 8px;
+.login-box input {
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid #d1d5db;
     margin-bottom: 20px;
-    outline: none;
+    font-size: 1rem;
 }
 
-#username:focus {
-    border-color: #667eea;
+.login-box button {
+    width: 100%;
 }
 
-button {
-    padding: 12px 40px;
-    font-size: 1.1rem;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-button:hover {
-    background: #5a6fd8;
-    transform: translateY(-2px);
-}
-
-/* Chat Screen */
-.header {
-    background: #667eea;
-    color: white;
-    padding: 15px 20px;
+.chat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 22px 28px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    background: var(--surface-strong);
+}
+
+.chat-header h2 {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+}
+
+.chat-header p {
+    color: var(--muted);
+}
+
+.header-actions button {
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.header-actions button:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.chat-layout {
+    display: grid;
+    grid-template-columns: 1.8fr 0.8fr;
+    gap: 1px;
+    background: rgba(0, 0, 0, 0.04);
+    flex: 1;
+}
+
+.chat-panel,
+.sidebar {
+    background: var(--surface);
+    padding: 20px;
+    overflow: hidden;
 }
 
 .messages {
-    flex: 1;
-    padding: 20px;
+    height: calc(100vh - 260px);
     overflow-y: auto;
-    background: #f8f9fa;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
+    padding-right: 8px;
 }
 
 .message {
-    max-width: 70%;
-    padding: 12px 16px;
-    border-radius: 12px;
+    max-width: 75%;
+    padding: 14px 18px;
+    border-radius: 20px;
     position: relative;
+    word-break: break-word;
 }
 
 .message.other {
     align-self: flex-start;
-    background: #e3e3e3;
-    border-bottom-left-radius: 4px;
+    background: rgba(148, 163, 184, 0.18);
+    color: var(--text);
 }
 
 .message.own {
     align-self: flex-end;
-    background: #667eea;
+    background: var(--primary);
     color: white;
-    border-bottom-right-radius: 4px;
 }
 
-.message-info {
-    font-size: 0.85rem;
-    margin-bottom: 4px;
-    opacity: 0.9;
-}
-
-.timestamp {
-    font-size: 0.75rem;
-    margin-left: 8px;
-}
-
-.system-message {
-    align-self: center;
-    background: #e0e0e0;
-    color: #555;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    margin: 5px 0;
-}
-
-.input-area {
-    padding: 15px;
-    background: white;
-    border-top: 1px solid #ddd;
+.message-meta {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.message-meta strong {
+    font-weight: 700;
+}
+
+.message-text,
+.message-file,
+.message-media {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.message-file a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.message-media img,
+.message-media video {
+    width: 100%;
+    border-radius: 16px;
+    margin-top: 6px;
+}
+
+.message-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.message-actions button {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: inherit;
+    border-radius: 999px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.message-actions button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.message-text.deleted {
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.forwarded,
+.edited {
+    display: inline-block;
+    margin-left: 10px;
+    font-size: 0.84rem;
+    color: var(--muted);
+}
+
+.attachment-bar,
+.emoji-bar,
+.input-area {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.attachment-bar {
+    justify-content: space-between;
+}
+
+.file-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 999px;
+    background: var(--surface-strong);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    cursor: pointer;
+    color: var(--text);
+}
+
+.file-button input {
+    display: none;
+}
+
+.file-preview {
+    font-size: 0.95rem;
+    color: var(--muted);
+    flex: 1;
+    text-align: right;
+}
+
+.emoji-bar {
+    flex-wrap: wrap;
+    background: var(--surface-strong);
+    border-radius: 18px;
+    padding: 10px;
+}
+
+.emoji-bar button {
+    border: none;
+    background: transparent;
+    font-size: 1.3rem;
+    cursor: pointer;
+}
+
+.input-area input {
+    flex: 1;
+    padding: 16px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    outline: none;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.input-area button {
+    padding: 14px 26px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.users-card,
+.info-card {
+    background: var(--surface-strong);
+    border-radius: 24px;
+    padding: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.users-card h3,
+.info-card h3 {
+    margin-bottom: 14px;
+}
+
+#user-list {
+    list-style: none;
+    display: grid;
     gap: 10px;
 }
 
-#message-input {
-    flex: 1;
-    padding: 14px;
-    border: 1px solid #ddd;
-    border-radius: 25px;
-    font-size: 1rem;
-    outline: none;
+#user-list li {
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(148, 163, 184, 0.12);
 }
 
-#message-input:focus {
-    border-color: #667eea;
+.info-card ul {
+    list-style: inside disc;
+    line-height: 1.8;
+    color: var(--muted);
 }
 
-.hidden {
-    display: none !important;
+@media (max-width: 1024px) {
+    .chat-layout {
+        grid-template-columns: 1fr;
+    }
+    .messages {
+        height: calc(100vh - 360px);
+    }
+}
+
+@media (max-width: 700px) {
+    .container {
+        border-radius: 16px;
+        min-height: 100vh;
+    }
+    .chat-header,
+    .chat-panel,
+    .sidebar {
+        padding: 18px;
+    }
+    .message {
+        max-width: 100%;
+    }
+    .message-actions {
+        flex-wrap: wrap;
+    }
 }
